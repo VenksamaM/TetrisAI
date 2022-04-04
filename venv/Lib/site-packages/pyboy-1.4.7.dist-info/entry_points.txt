@@ -1,0 +1,3 @@
+[console_scripts]
+pyboy = pyboy.__main__:main
+
