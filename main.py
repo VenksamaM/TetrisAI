@@ -338,4 +338,3 @@ while True:
 # create a genetic algorithm and make it approximate static weights
 # essentially, make the yiyuan lee algorithm with a different fitness function
 # Friday 15th is your deadline for all programming related activities for this project
-#  asdasda
