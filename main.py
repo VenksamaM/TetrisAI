@@ -121,15 +121,15 @@ def getLevel():
     return tetris.level
 
 
-def calculateReward(board):
-    reward = getCompleteLines(board)
+def calculateReward(board, w1, w2, w3, w4):
+    reward = w1 * getCompleteLines(board)
     if reward > 0:
-        holes = getHoles(board)
-        aggregateHeight = getAggregateHeight(board)
-        bumpiness = getBumpiness(board)
+        holes = w2 * getHoles(board)
+        aggregateHeight = w3 * getAggregateHeight(board)
+        bumpiness = w4 * getBumpiness(board)
 
         multiplier = 1
-        multiplier += aggregateHeight/10
+        multiplier += aggregateHeight / 10
         multiplier += 1 + bumpiness / 10
 
         if holes > 0:
@@ -300,45 +300,97 @@ def getCompleteLines(board):
     return lines
 
 
-# solver = ContinuousGenAlgSolver(
-#     n_genes=4,  # number of variables defining the problem
-#     fitness_function=calculateReward(board),  # fitness function to be maximized
-# )
+pyboy.tick()
+
+
+class tetrisAI(ContinuousGenAlgSolver):
+    def __init__(self, *args, **kwargs):
+        ContinuousGenAlgSolver.__init__(self, *args, **kwargs)
+
+    # fitness function to be maximized
+    def fitness_function(self, chromosome):
+        # board = getCurrentBoard()
+        print(chromosome)
+
+        tetris.reset_game()
+        pyboy.tick()
+        pyboy.set_emulation_speed(0)
+
+        score = 0
+        while True:
+            try:
+                num1 = 0
+                num2 = 0
+                temp = 0
+                for i in range(-4, 4):
+                    for j in range(4):
+                        # TODO: predictions don't account for next tetromino... fix this
+                        # TODO: when making predictions, read the board, pause the game, solve, then play...
+                        #  this gives more time for AI to solve (may even extend max prediction height)
+                        prediction = calculateReward(get_predicted_board(i, j),
+                                                     chromosome[0], chromosome[1],
+                                                     chromosome[2], chromosome[3])
+
+                        if prediction >= temp:
+                            num1 = i
+                            num2 = j
+                            temp = prediction
+
+                action(num1, num2)
+                score += temp
+            except:
+                break
+        return score
+
+    pass
+
+
+solver = tetrisAI(
+    n_genes=4,  # number of variables defining the problem
+    pop_size=5,  # TODO: YL set it to 1000. Set ideal population size
+    max_gen=10,  # TODO: YL did 500 max moves... we have to do something else for upper limit
+    mutation_rate=0.1,  # TODO: YL did 0.05... Set ideal mutation rate.
+    selection_rate=0.6,  # percentage of the population to select for mating
+                # TODO: YL did 0.1
+    selection_strategy="roulette_wheel",  # TODO: YL did tournament style... choose an ideal strategy
+    problem_type=float,
+    variables_limits=(-1, 1)
+)
+
+solver.solve()
+
+# score = 0
+# while True:
+#     pyboy.tick()  # what does this actually do?
 #
-# solver.solve()
-
-score = 0
-while True:
-    pyboy.tick()  # what does this actually do?
-
-    # area = getCurrentBoard()
-    # area[1][2] = 1
-    # print(area)
-
-    # num1 = random.randint(-4, 4)
-    # num2 = random.randint(0, 4)
-    #
-    # temp = get_predicted_board(num1, num2)
-    # action(num1, num2)
-
-    num1 = 0
-    num2 = 0
-    temp = 0
-    for i in range(-4, 4):
-        for j in range(4):
-            prediction = calculateReward(get_predicted_board(i, j))
-
-            if prediction >= temp:
-                num1 = i
-                num2 = j
-                temp = prediction
-
-    action(num1, num2)
-
-    score += calculateReward(getCurrentBoard())
-    print(score)
-
-    # print(calculateReward(getCurrentBoard()))
-
-    # print(tetris.score)
-    # print("timestep = ", timestep, calculateFitness())
+#     # area = getCurrentBoard()
+#     # area[1][2] = 1
+#     # print(area)
+#
+#     # num1 = random.randint(-4, 4)
+#     # num2 = random.randint(0, 4)
+#     #
+#     # temp = get_predicted_board(num1, num2)
+#     # action(num1, num2)
+#
+#     num1 = 0
+#     num2 = 0
+#     temp = 0
+#     for i in range(-4, 4):
+#         for j in range(4):
+#             prediction = calculateReward(get_predicted_board(i, j))
+#
+#             if prediction >= temp:
+#                 num1 = i
+#                 num2 = j
+#                 temp = prediction
+#
+#     action(num1, num2)
+#
+#     score += calculateReward(getCurrentBoard())
+#     print(score)
+#
+#     # print(calculateReward(getCurrentBoard()))
+#
+#     # print(tetris.score)
+#     # print("timestep = ", timestep, calculateFitness())
