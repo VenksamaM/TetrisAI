@@ -2,6 +2,8 @@ import random
 
 import numpy as np
 from pyboy import PyBoy, WindowEvent
+from geneal.genetic_algorithms import ContinuousGenAlgSolver
+from geneal.applications.fitness_functions.continuous import fitness_functions_continuous
 
 pyboy = PyBoy('Tetris.gb', game_wrapper=True)
 tetris = pyboy.game_wrapper()
@@ -236,6 +238,7 @@ rotation = {
 }
 
 
+# compares predicted board to real board to verify that predictions are correct
 def board_check(predicted_board, real_board):
     for row in range(len(predicted_board)):
         for column in range(len(predicted_board[0])):
@@ -296,6 +299,13 @@ def getCompleteLines(board):
             lines += 1
     return lines
 
+
+# solver = ContinuousGenAlgSolver(
+#     n_genes=4,  # number of variables defining the problem
+#     fitness_function=calculateReward(board),  # fitness function to be maximized
+# )
+#
+# solver.solve()
 
 score = 0
 while True:
