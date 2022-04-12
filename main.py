@@ -138,9 +138,9 @@ def calculateReward(board):
     # calculate sub-rewards
     lines = 0
     count = 0
-    for row in range(0, len(board)):
+    for row in range(len(board)):
         flag = False
-        for column in range(0, len(board[0])):
+        for column in range(len(board[0])):
             if board[row][column] != 0:
                 if flag is False:
                     flag = True
@@ -167,10 +167,10 @@ def get_predicted_board(translate, turn):
 
     coords = getStartCoords(current)
 
-    for row in range(0, len(coords)):
+    for row in range(len(coords)):
         board[coords[row][0], coords[row][1]] = 0
 
-    for column in range(0, len(board[2])):
+    for column in range(len(board[2])):
         if board[2][column] != 0:
             # print("Prediction failure.")
             return False
@@ -200,16 +200,16 @@ def get_predicted_board(translate, turn):
 
     drop = True
     while drop:
-        for row in range(0, len(coords)):
+        for row in range(len(coords)):
             if coords[row][0] > 16 or board[coords[row][0] + 1][coords[row][1]] != 0:
                 drop = False
                 break
 
         if drop:
-            for row in range(0, len(coords)):
+            for row in range(len(coords)):
                 coords[row][0] += 1
 
-    for row in range(0, len(coords)):
+    for row in range(len(coords)):
         board[coords[row][0], coords[row][1]] = num
 
     # print(board)
@@ -237,8 +237,8 @@ rotation = {
 
 
 def board_check(predicted_board, real_board):
-    for row in range(0, len(predicted_board)):
-        for column in range(0, len(predicted_board[0])):
+    for row in range(len(predicted_board)):
+        for column in range(len(predicted_board[0])):
             if (predicted_board[row][column] == 0 and real_board[row][column] != 0) or (
                     predicted_board[row][column] != 0 and real_board[row][column] == 0):
                 return False
@@ -248,9 +248,9 @@ def board_check(predicted_board, real_board):
 # EVAL FUNCTIONS
 def getAggregateHeight(board):
     average = 0
-    for column in range(0, len(board[0])):
+    for column in range(len(board[0])):
         total = 0
-        for row in range(0, len(board)):
+        for row in range(len(board)):
             if board[row][column] != 0:
                 total += len(board) - row
                 break
@@ -262,8 +262,8 @@ def getAggregateHeight(board):
 def getBumpiness(board):
     heights = []
     bumpiness = 0
-    for column in range(0, len(board[0])):
-        for row in range(0, len(board)):
+    for column in range(len(board[0])):
+        for row in range(len(board)):
             if board[row][column] != 0:
                 heights.append(len(board) - row)
                 break
@@ -274,9 +274,9 @@ def getBumpiness(board):
 
 def getHoles(board):
     holes = 0
-    for column in range(0, len(board[0])):
+    for column in range(len(board[0])):
         flag = False
-        for row in range(0, len(board)):
+        for row in range(len(board)):
             if board[row][column] != 0:
                 flag = True
             elif flag:
@@ -287,9 +287,9 @@ def getHoles(board):
 # complete lines
 def getCompleteLines(board):
     lines = 0
-    for row in range(0, len(board)):
+    for row in range(len(board)):
         count = 0
-        for column in range(0, len(board[0])):
+        for column in range(len(board[0])):
             if board[row][column] != 0:
                 count += 1
         if count == len(board[0]):
@@ -315,7 +315,7 @@ while True:
     num2 = 0
     temp = 0
     for i in range(-4, 4):
-        for j in range(0, 4):
+        for j in range(4):
             prediction = calculateReward(get_predicted_board(i, j))
 
             if prediction >= temp:
