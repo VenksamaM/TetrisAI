@@ -160,17 +160,22 @@ def getCurrentBoard():
 
 # 1
 # 17
-def get_predicted_board(translate, turn):
-    board = getCurrentBoard()
-    current = getCurrentTetromino()
+def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), startingBoard=getCurrentBoard()):
     num = -1
 
     # print(current, translate, turn)
 
-    coords = getStartCoords(current)
+    coords = getStartCoords(tetromino)
 
-    for row in range(len(coords)):
-        board[coords[row][0], coords[row][1]] = 0
+    board = np.copy(startingBoard)
+    # print(getCurrentTetromino(), tetromino)
+    # print(board)
+
+    for item in range(len(coords)):
+        # print("start ", item, ": ", board[coords[item][0], coords[item][1]])
+        board[coords[item][0], coords[item][1]] = 0
+
+    # print(board)
 
     for column in range(len(board[2])):
         if board[2][column] != 0:
@@ -188,11 +193,11 @@ def get_predicted_board(translate, turn):
                 # coords[i][0] += 1
             translate = 0
 
-    if current != 'O':
-        if current == 'I' or current == "S" or current == "Z":
+    if tetromino != 'O':
+        if tetromino == 'I' or tetromino == "S" or tetromino == "Z":
             turn = turn % 2
         while turn != 0:
-            tempCoords = np.add(coords, rotation[''.join([current, str(turn)])])
+            tempCoords = np.add(coords, rotation[''.join([tetromino, str(turn)])])
 
             if all([x > 9 for x in tempCoords[:][1]]):
                 turn = turn - 1
@@ -303,6 +308,39 @@ def getCompleteLines(board):
 pyboy.tick()
 
 
+def calculateBestMove(weights):
+    score = 0
+    turns = 0
+    translate = 0
+    temp = 0
+    board = getCurrentBoard()
+    # print(board, "\n\n")
+    for i in range(-5, 5):
+        for j in range(4):
+            try:
+                predictedBoard = get_predicted_board(i, j, getCurrentTetromino(), getCurrentBoard())
+                tempBoard = np.copy(predictedBoard)
+                prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3])
+
+                for i2 in range(-5, 5):
+                    for j2 in range(4):
+                        try:
+                            predictedBoard2 = get_predicted_board(i2, j2, getNextTetromino(), tempBoard)
+                            prediction2 = calculateReward(predictedBoard2,
+                                                          weights[0], weights[1],
+                                                          weights[2], weights[3])
+
+                            if prediction + prediction2 >= temp:
+                                turns = i
+                                translate = j
+                                temp = prediction + prediction2
+                        except:
+                            pass
+            except:
+                pass
+    return [turns, translate, temp]
+
+
 class tetrisAI(ContinuousGenAlgSolver):
     def __init__(self, *args, **kwargs):
         ContinuousGenAlgSolver.__init__(self, *args, **kwargs)
@@ -318,40 +356,22 @@ class tetrisAI(ContinuousGenAlgSolver):
 
         score = 0
         while True:
-            try:
-                num1 = 0
-                num2 = 0
-                temp = 0
-                for i in range(-4, 4):
-                    for j in range(4):
-                        # TODO: predictions don't account for next tetromino... fix this
-                        # TODO: when making predictions, read the board, pause the game, solve, then play...
-                        #  this gives more time for AI to solve (may even extend max prediction height)
-                        prediction = calculateReward(get_predicted_board(i, j),
-                                                     chromosome[0], chromosome[1],
-                                                     chromosome[2], chromosome[3])
-
-                        if prediction >= temp:
-                            num1 = i
-                            num2 = j
-                            temp = prediction
-
-                action(num1, num2)
-                score += temp
-            except:
+            bestMove = calculateBestMove(chromosome)
+            if bestMove[2] == 0:
                 break
-        return score
+            action(bestMove[0], bestMove[1])
+            score += bestMove[2]
 
-    pass
+        return score
 
 
 solver = tetrisAI(
     n_genes=4,  # number of variables defining the problem
-    pop_size=5,  # TODO: YL set it to 1000. Set ideal population size
+    pop_size=10,  # TODO: YL set it to 1000. Set ideal population size
     max_gen=10,  # TODO: YL did 500 max moves... we have to do something else for upper limit
     mutation_rate=0.1,  # TODO: YL did 0.05... Set ideal mutation rate.
-    selection_rate=0.6,  # percentage of the population to select for mating
-                # TODO: YL did 0.1
+    selection_rate=0.2,  # percentage of the population to select for mating
+    # TODO: YL did 0.1
     selection_strategy="roulette_wheel",  # TODO: YL did tournament style... choose an ideal strategy
     problem_type=float,
     variables_limits=(-1, 1)
