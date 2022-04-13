@@ -367,7 +367,7 @@ class tetrisAI(ContinuousGenAlgSolver):
 
 solver = tetrisAI(
     n_genes=4,  # number of variables defining the problem
-    pop_size=10,  # TODO: YL set it to 1000. Set ideal population size
+    pop_size=20,  # TODO: YL set it to 1000. Set ideal population size
     max_gen=10,  # TODO: YL did 500 max moves... we have to do something else for upper limit
     mutation_rate=0.1,  # TODO: YL did 0.05... Set ideal mutation rate.
     selection_rate=0.2,  # percentage of the population to select for mating
@@ -379,38 +379,4 @@ solver = tetrisAI(
 
 solver.solve()
 
-# score = 0
-# while True:
-#     pyboy.tick()  # what does this actually do?
-#
-#     # area = getCurrentBoard()
-#     # area[1][2] = 1
-#     # print(area)
-#
-#     # num1 = random.randint(-4, 4)
-#     # num2 = random.randint(0, 4)
-#     #
-#     # temp = get_predicted_board(num1, num2)
-#     # action(num1, num2)
-#
-#     num1 = 0
-#     num2 = 0
-#     temp = 0
-#     for i in range(-4, 4):
-#         for j in range(4):
-#             prediction = calculateReward(get_predicted_board(i, j))
-#
-#             if prediction >= temp:
-#                 num1 = i
-#                 num2 = j
-#                 temp = prediction
-#
-#     action(num1, num2)
-#
-#     score += calculateReward(getCurrentBoard())
-#     print(score)
-#
-#     # print(calculateReward(getCurrentBoard()))
-#
-#     # print(tetris.score)
-#     # print("timestep = ", timestep, calculateFitness())
+
