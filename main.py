@@ -8,7 +8,6 @@ from geneal.applications.fitness_functions.continuous import fitness_functions_c
 pyboy = PyBoy('Tetris.gb', game_wrapper=True)
 tetris = pyboy.game_wrapper()
 tetris.start_game()
-timestep = 0
 
 # Actions for the AI to use
 action_map = {
@@ -39,6 +38,7 @@ def action_down():
     pyboy.send_input(action_map['Down'][0])
     pyboy.tick()
     pyboy.send_input(action_map['Down'][1])
+    pyboy.tick()
 
 
 def drop_down():
@@ -46,9 +46,6 @@ def drop_down():
     while pyboy.get_memory_value(0xc201) != start_y or not started_moving:
         started_moving = True
         action_down()
-
-    global timestep
-    timestep += 1
 
 
 # go n_dir spaces in direction, and rotate n_turn times
@@ -149,7 +146,7 @@ def calculateReward(board, w1, w2, w3, w4):
                     lines += 1
                 count += 1
 
-    reward += (count / lines) / 10
+    reward += (count / lines) / 100
 
     return reward
 
@@ -315,6 +312,7 @@ def calculateBestMove(weights):
     temp = 0
     board = getCurrentBoard()
     # print(board, "\n\n")
+    count = 0
     for i in range(-5, 5):
         for j in range(4):
             try:
@@ -330,10 +328,12 @@ def calculateBestMove(weights):
                                                           weights[0], weights[1],
                                                           weights[2], weights[3])
 
-                            if prediction + prediction2 >= temp:
+                            if prediction + prediction2 > temp:
                                 turns = i
                                 translate = j
                                 temp = prediction + prediction2
+                            # print(count)
+                            # count += 1
                         except:
                             pass
             except:
@@ -348,7 +348,7 @@ class tetrisAI(ContinuousGenAlgSolver):
     # fitness function to be maximized
     def fitness_function(self, chromosome):
         # board = getCurrentBoard()
-        print(chromosome)
+        print(chromosome, end="")
 
         tetris.reset_game()
         pyboy.tick()
@@ -362,6 +362,7 @@ class tetrisAI(ContinuousGenAlgSolver):
             action(bestMove[0], bestMove[1])
             score += bestMove[2]
 
+        print(" ", score)
         return score
 
 
@@ -370,9 +371,9 @@ solver = tetrisAI(
     pop_size=20,  # TODO: YL set it to 1000. Set ideal population size
     max_gen=10,  # TODO: YL did 500 max moves... we have to do something else for upper limit
     mutation_rate=0.1,  # TODO: YL did 0.05... Set ideal mutation rate.
-    selection_rate=0.2,  # percentage of the population to select for mating
+    selection_rate=0.4,  # percentage of the population to select for mating
     # TODO: YL did 0.1
-    selection_strategy="roulette_wheel",  # TODO: YL did tournament style... choose an ideal strategy
+    selection_strategy="tournament",  # TODO: YL did tournament style... choose an ideal strategy
     problem_type=float,
     variables_limits=(-1, 1)
 )
