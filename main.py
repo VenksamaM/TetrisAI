@@ -2,8 +2,9 @@ import random
 
 import numpy as np
 from pyboy import PyBoy, WindowEvent
-from geneal.genetic_algorithms import ContinuousGenAlgSolver
-from geneal.applications.fitness_functions.continuous import fitness_functions_continuous
+import pygad
+# from geneal.genetic_algorithms import ContinuousGenAlgSolver
+# from geneal.applications.fitness_functions.continuous import fitness_functions_continuous
 
 pyboy = PyBoy('Tetris.gb', game_wrapper=True)
 tetris = pyboy.game_wrapper()
@@ -118,7 +119,7 @@ def getLevel():
     return tetris.level
 
 
-def calculateReward(board, w1, w2, w3, w4):
+def calculateReward(board, w1, w2, w3, w4, w5):
     reward = w1 * getCompleteLines(board)
     if reward > 0:
         holes = w2 * getHoles(board)
@@ -146,7 +147,7 @@ def calculateReward(board, w1, w2, w3, w4):
                     lines += 1
                 count += 1
 
-    reward += (count / lines) / 100
+    reward += w5 * ((count / lines) / 100)
 
     return reward
 
@@ -289,7 +290,6 @@ def getHoles(board):
     return holes
 
 
-# complete lines
 def getCompleteLines(board):
     lines = 0
     for row in range(len(board)):
@@ -318,7 +318,7 @@ def calculateBestMove(weights):
             try:
                 predictedBoard = get_predicted_board(i, j, getCurrentTetromino(), getCurrentBoard())
                 tempBoard = np.copy(predictedBoard)
-                prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3])
+                prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3], weights[4])
 
                 for i2 in range(-5, 5):
                     for j2 in range(4):
@@ -326,7 +326,7 @@ def calculateBestMove(weights):
                             predictedBoard2 = get_predicted_board(i2, j2, getNextTetromino(), tempBoard)
                             prediction2 = calculateReward(predictedBoard2,
                                                           weights[0], weights[1],
-                                                          weights[2], weights[3])
+                                                          weights[2], weights[3], weights[4])
 
                             if prediction + prediction2 > temp:
                                 turns = i
@@ -366,18 +366,18 @@ class tetrisAI(ContinuousGenAlgSolver):
         return score
 
 
-solver = tetrisAI(
-    n_genes=4,  # number of variables defining the problem
-    pop_size=20,  # TODO: YL set it to 1000. Set ideal population size
-    max_gen=10,  # TODO: YL did 500 max moves... we have to do something else for upper limit
-    mutation_rate=0.1,  # TODO: YL did 0.05... Set ideal mutation rate.
-    selection_rate=0.4,  # percentage of the population to select for mating
-    # TODO: YL did 0.1
-    selection_strategy="tournament",  # TODO: YL did tournament style... choose an ideal strategy
-    problem_type=float,
-    variables_limits=(-1, 1)
-)
-
-solver.solve()
+# solver = tetrisAI(
+#     n_genes=5,  # number of variables defining the problem
+#     pop_size=100,  # TODO: YL set it to 1000. Set ideal population size
+#     max_gen=10,  # TODO: YL did 500 max moves... we have to do something else for upper limit
+#     mutation_rate=0.1,  # TODO: YL did 0.05... Set ideal mutation rate.
+#     selection_rate=0.4,  # percentage of the population to select for mating
+#     # TODO: YL did 0.1
+#     selection_strategy="tournament",  # TODO: YL did tournament style... choose an ideal strategy
+#     problem_type=float,
+#     variables_limits=(-1, 1)
+# )
+#
+# solver.solve()
 
 
