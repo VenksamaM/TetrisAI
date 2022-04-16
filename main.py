@@ -341,30 +341,79 @@ def calculateBestMove(weights):
     return [turns, translate, temp]
 
 
-class tetrisAI(ContinuousGenAlgSolver):
-    def __init__(self, *args, **kwargs):
-        ContinuousGenAlgSolver.__init__(self, *args, **kwargs)
+# class tetrisAI(ContinuousGenAlgSolver):
+#     def __init__(self, *args, **kwargs):
+#         ContinuousGenAlgSolver.__init__(self, *args, **kwargs)
 
-    # fitness function to be maximized
-    def fitness_function(self, chromosome):
-        # board = getCurrentBoard()
-        print(chromosome, end="")
 
-        tetris.reset_game()
-        pyboy.tick()
-        pyboy.set_emulation_speed(0)
+# fitness function to be maximized
+def fitness_function(solution, solution_idx):
+    # board = getCurrentBoard()
+    print(solution, end="")
 
-        score = 0
-        while True:
-            bestMove = calculateBestMove(chromosome)
-            if bestMove[2] == 0:
-                break
-            action(bestMove[0], bestMove[1])
-            score += bestMove[2]
+    tetris.reset_game()
+    pyboy.tick()
+    pyboy.set_emulation_speed(0)
 
-        print(" ", score)
-        return score
+    score = 0
+    while True:
+        bestMove = calculateBestMove(solution)
+        if bestMove[2] == 0:
+            break
+        action(bestMove[0], bestMove[1])
+        score += bestMove[2]
 
+    print(" ", score)
+    return score
+
+
+num_generations = 5
+num_parents_mating = 4  # percentage of total population (sol_per_pop * 0.1)
+sol_per_pop = 5
+num_genes = 5
+init_range_low = -1
+init_range_high = 1
+parent_selection_type = "tournament"
+keep_parents = 1
+crossover_type = "single_point"
+mutation_type = "random"  # "adaptive" is IMPROVEMENT TO YL
+mutation_percent_genes = 5
+
+
+def callback_gen(ga):
+    print("Generation : ", ga.generations_completed)
+    print("Fitness of the best solution :", ga.best_solution()[1])
+
+
+ga_instance = pygad.GA(num_generations=num_generations,
+                       num_parents_mating=num_parents_mating,
+                       fitness_func=fitness_function,
+                       sol_per_pop=sol_per_pop,
+                       num_genes=num_genes,
+                       init_range_low=init_range_low,
+                       init_range_high=init_range_high,
+                       parent_selection_type=parent_selection_type,
+                       keep_parents=keep_parents,
+                       crossover_type=crossover_type,
+                       mutation_type=mutation_type,
+                       mutation_percent_genes=mutation_percent_genes,
+                       callback_generation=callback_gen)
+
+ga_instance.run()  # run GA
+ga_instance.plot_fitness()  # plot graph
+
+# save current model
+filename = 'genetic'
+ga_instance.save(filename=filename)
+
+# load current model
+# loaded_ga_instance = pygad.load(filename=filename)
+
+# get info about best solution
+solution, solution_fitness, solution_idx = ga_instance.best_solution()
+print("Parameters of the best solution : {solution}".format(solution=solution))
+print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
+print("Index of the best solution : {solution_idx}".format(solution_idx=solution_idx))
 
 # solver = tetrisAI(
 #     n_genes=5,  # number of variables defining the problem
