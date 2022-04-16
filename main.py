@@ -3,6 +3,7 @@ import random
 import numpy as np
 from pyboy import PyBoy, WindowEvent
 import pygad
+import pygad.gann
 # from geneal.genetic_algorithms import ContinuousGenAlgSolver
 # from geneal.applications.fitness_functions.continuous import fitness_functions_continuous
 
@@ -367,29 +368,53 @@ def fitness_function(solution, solution_idx):
     return score
 
 
+board = getCurrentBoard()
+data_inputs = np.array([getHoles(board), getBumpiness(board), getAggregateHeight(board),
+                        getCurrentTetromino(), getNextTetromino()])  # try adding current and next tetromino as well
+data_outputs = np.array([0, 0, 0, 0, 0])
+
+GANN_instance = pygad.gann.GANN(num_solutions=5,
+                                num_neurons_input=5,
+                                num_neurons_hidden_layers=[3],
+                                num_neurons_output=5,
+                                hidden_activations=["relu"],
+                                output_activation="softmax")
+population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
+print(" . ", GANN_instance.population_networks)
+
+
 num_generations = 5
 num_parents_mating = 4  # percentage of total population (sol_per_pop * 0.1)
+
+initial_population = population_vectors.copy()
 sol_per_pop = 5
 num_genes = 5
+
 init_range_low = -1
 init_range_high = 1
 parent_selection_type = "tournament"
 keep_parents = 1
 crossover_type = "single_point"
 mutation_type = "random"  # "adaptive" is IMPROVEMENT TO YL
-mutation_percent_genes = 5
+mutation_percent_genes = 20
 
 
-def callback_gen(ga):
-    print("Generation : ", ga.generations_completed)
+def on_gen(ga):
+    global GANN_instance
+
+    population_matrices = pygad.gann.population_as_matrices(population_networks=GANN_instance.population_networks,
+                                                            population_vectors=ga.population)
+    GANN_instance.update_population_trained_weights(population_trained_weights=population_matrices)
+
     print("Fitness of the best solution :", ga.best_solution()[1])
+    print("Generation : ", ga.generations_completed)
+    print()
 
 
 ga_instance = pygad.GA(num_generations=num_generations,
                        num_parents_mating=num_parents_mating,
                        fitness_func=fitness_function,
-                       sol_per_pop=sol_per_pop,
-                       num_genes=num_genes,
+                       initial_population=initial_population,
                        init_range_low=init_range_low,
                        init_range_high=init_range_high,
                        parent_selection_type=parent_selection_type,
@@ -397,7 +422,7 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        crossover_type=crossover_type,
                        mutation_type=mutation_type,
                        mutation_percent_genes=mutation_percent_genes,
-                       callback_generation=callback_gen)
+                       on_generation=on_gen)
 
 ga_instance.run()  # run GA
 ga_instance.plot_fitness()  # plot graph
