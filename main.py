@@ -148,7 +148,7 @@ def calculateReward(board, w1, w2, w3, w4, w5):
                     lines += 1
                 count += 1
 
-    reward += w5 * ((count / lines) / 100)
+    reward += abs(w5) * ((count / lines) / 100)
 
     return reward
 
@@ -349,8 +349,11 @@ def calculateBestMove(weights):
 
 # fitness function to be maximized
 def fitness_function(solution, solution_idx):
+    global GANN_instance
+
+    # print("::: ", predictions, "\n")
+
     # board = getCurrentBoard()
-    print(solution, end="")
 
     tetris.reset_game()
     pyboy.tick()
@@ -358,33 +361,39 @@ def fitness_function(solution, solution_idx):
 
     score = 0
     while True:
-        bestMove = calculateBestMove(solution)
+        board = getCurrentBoard()
+        data_inputs = np.array([[getHoles(board)], [getBumpiness(board)], [getAggregateHeight(board)],
+                                [pyboy.get_memory_value(0xc203)]])
+        predictions = pygad.nn.predict(last_layer=GANN_instance.population_networks[solution_idx],
+                                       data_inputs=data_inputs,
+                                       problem_type="regression")
+        bestMove = calculateBestMove(predictions[0])
         if bestMove[2] == 0:
             break
         action(bestMove[0], bestMove[1])
         score += bestMove[2]
 
-    print(" ", score)
+    print(solution_idx, score)
     return score
 
 
 board = getCurrentBoard()
-data_inputs = np.array([getHoles(board), getBumpiness(board), getAggregateHeight(board),
-                        getCurrentTetromino(), getNextTetromino()])  # try adding current and next tetromino as well
+data_inputs = np.array([[getHoles(board)], [getBumpiness(board)], [getAggregateHeight(board)]])
+#  [getCurrentTetromino()], [getNextTetromino()]]
 data_outputs = np.array([0, 0, 0, 0, 0])
 
-GANN_instance = pygad.gann.GANN(num_solutions=5,
-                                num_neurons_input=5,
-                                num_neurons_hidden_layers=[3],
-                                num_neurons_output=5,
-                                hidden_activations=["relu"],
+GANN_instance = pygad.gann.GANN(num_solutions=50,
+                                num_neurons_input=1,
+                                num_neurons_hidden_layers=[5, 7, 5],
+                                num_neurons_output=5  ,
+                                hidden_activations=["relu", "relu", "relu"],
                                 output_activation="softmax")
 population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
-print(" . ", GANN_instance.population_networks)
+print(" . ", population_vectors)
 
 
 num_generations = 5
-num_parents_mating = 4  # percentage of total population (sol_per_pop * 0.1)
+num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
 
 initial_population = population_vectors.copy()
 sol_per_pop = 5
