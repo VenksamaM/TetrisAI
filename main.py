@@ -360,10 +360,10 @@ def fitness_function(solution, solution_idx):
     pyboy.set_emulation_speed(0)
 
     score = 0
-    while True:
+    while solution_idx != None:
         board = getCurrentBoard()
         data_inputs = np.array([[getHoles(board)], [getBumpiness(board)], [getAggregateHeight(board)],
-                                [pyboy.get_memory_value(0xc203)]])
+                                [pyboy.get_memory_value(0xc203)], [pyboy.get_memory_value(0xC213)]])
         predictions = pygad.nn.predict(last_layer=GANN_instance.population_networks[solution_idx],
                                        data_inputs=data_inputs,
                                        problem_type="regression")
@@ -377,11 +377,6 @@ def fitness_function(solution, solution_idx):
     return score
 
 
-board = getCurrentBoard()
-data_inputs = np.array([[getHoles(board)], [getBumpiness(board)], [getAggregateHeight(board)]])
-#  [getCurrentTetromino()], [getNextTetromino()]]
-data_outputs = np.array([0, 0, 0, 0, 0])
-
 GANN_instance = pygad.gann.GANN(num_solutions=50,
                                 num_neurons_input=1,
                                 num_neurons_hidden_layers=[5, 7, 5],
@@ -392,20 +387,21 @@ population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_i
 print(" . ", population_vectors)
 
 
-num_generations = 5
+num_generations = 20
 num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
 
 initial_population = population_vectors.copy()
-sol_per_pop = 5
-num_genes = 5
+# sol_per_pop = 5
+# num_genes = 5
 
-init_range_low = -1
-init_range_high = 1
+# init_range_low = -1
+# init_range_high = 1
+
 parent_selection_type = "tournament"
 keep_parents = 1
 crossover_type = "single_point"
-mutation_type = "random"  # "adaptive" is IMPROVEMENT TO YL
-mutation_percent_genes = 20
+mutation_type = "adaptive"  # "adaptive" is IMPROVEMENT TO YL
+mutation_percent_genes = [50, 10]
 
 
 def on_gen(ga):
@@ -424,8 +420,6 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        num_parents_mating=num_parents_mating,
                        fitness_func=fitness_function,
                        initial_population=initial_population,
-                       init_range_low=init_range_low,
-                       init_range_high=init_range_high,
                        parent_selection_type=parent_selection_type,
                        keep_parents=keep_parents,
                        crossover_type=crossover_type,
