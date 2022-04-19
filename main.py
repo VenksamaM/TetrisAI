@@ -120,11 +120,11 @@ def getLevel():
 
 
 def calculateReward(board, w):
-    reward = w[0] * getCompleteLines(board)
+    reward = getCompleteLines(board)
     if reward > 0:
-        holes = w[1] * getHoles(board)
-        aggregateHeight = w[2] * getAggregateHeight(board)
-        bumpiness = w[3] * getBumpiness(board)
+        holes = getHoles(board)
+        aggregateHeight = getAggregateHeight(board)
+        bumpiness = getBumpiness(board)
 
         multiplier = 1
         multiplier += aggregateHeight / 10
@@ -147,7 +147,7 @@ def calculateReward(board, w):
     #                 lines += 1
     #             count += 1
 
-    reward += abs(w[4]) * calculateSubRewards(board)
+    reward += calculateSubRewards(board)
 
     return reward
 
