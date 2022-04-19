@@ -1,4 +1,5 @@
 import random
+import types
 
 import numpy as np
 from pyboy import PyBoy, WindowEvent
@@ -118,12 +119,12 @@ def getLevel():
     return tetris.level
 
 
-def calculateReward(board, w1, w2, w3, w4, w5):
-    reward = w1 * getCompleteLines(board)
+def calculateReward(board, w):
+    reward = w[0] * getCompleteLines(board)
     if reward > 0:
-        holes = w2 * getHoles(board)
-        aggregateHeight = w3 * getAggregateHeight(board)
-        bumpiness = w4 * getBumpiness(board)
+        holes = w[1] * getHoles(board)
+        aggregateHeight = w[2] * getAggregateHeight(board)
+        bumpiness = w[3] * getBumpiness(board)
 
         multiplier = 1
         multiplier += aggregateHeight / 10
@@ -134,7 +135,24 @@ def calculateReward(board, w1, w2, w3, w4, w5):
 
         reward = reward * multiplier
 
-    # calculate sub-rewards
+    # # calculate sub-rewards
+    # lines = 0
+    # count = 0
+    # for row in range(len(board)):
+    #     flag = False
+    #     for column in range(len(board[0])):
+    #         if board[row][column] != 0:
+    #             if flag is False:
+    #                 flag = True
+    #                 lines += 1
+    #             count += 1
+
+    reward += abs(w[4]) * calculateSubRewards(board)
+
+    return reward
+
+
+def calculateSubRewards(board):
     lines = 0
     count = 0
     for row in range(len(board)):
@@ -146,9 +164,7 @@ def calculateReward(board, w1, w2, w3, w4, w5):
                     lines += 1
                 count += 1
 
-    reward += abs(w5) * ((count / lines) / 100)
-
-    return reward
+    return (count / lines) / 100
 
 
 def getCurrentBoard():
@@ -166,7 +182,6 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
 
     for item in range(len(coords)):
         board[coords[item][0], coords[item][1]] = 0
-
 
     for column in range(len(board[2])):
         if board[2][column] != 0:
@@ -298,7 +313,7 @@ def getCompleteLines(board):
 pyboy.tick()
 
 
-def calculateBestMove(weights):
+def calculateBestMove(w):
     score = 0
     turns = 0
     translate = 0
@@ -311,15 +326,25 @@ def calculateBestMove(weights):
             try:
                 predictedBoard = get_predicted_board(i, j, getCurrentTetromino(), getCurrentBoard())
                 tempBoard = np.copy(predictedBoard)
-                prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3], weights[4])
+                # prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3],
+                # weights[4])
+                prediction = w[0] * getCompleteLines(tempBoard) + \
+                             w[1] * getHoles(tempBoard) + \
+                             w[2] * getAggregateHeight(tempBoard) + \
+                             w[3] * getBumpiness(tempBoard)
 
                 for i2 in range(-5, 5):
                     for j2 in range(4):
                         try:
                             predictedBoard2 = get_predicted_board(i2, j2, getNextTetromino(), tempBoard)
-                            prediction2 = calculateReward(predictedBoard2,
-                                                          weights[0], weights[1],
-                                                          weights[2], weights[3], weights[4])
+                            # prediction2 = calculateReward(predictedBoard2,
+                            #                               weights[0], weights[1],
+                            #                               weights[2], weights[3], weights[4])
+
+                            prediction2 = w[0] * getCompleteLines(predictedBoard2) + \
+                                          w[1] * getHoles(predictedBoard2) + \
+                                          w[2] * getAggregateHeight(predictedBoard2) + \
+                                          w[3] * getBumpiness(predictedBoard2)
 
                             if prediction + prediction2 > temp:
                                 turns = i
@@ -331,7 +356,9 @@ def calculateBestMove(weights):
                             pass
             except:
                 pass
+    print("temp = ", temp)
     return [turns, translate, temp]
+
 
 # fitness function to be maximized
 def fitness_function(solution, solution_idx):
@@ -346,7 +373,7 @@ def fitness_function(solution, solution_idx):
     pyboy.set_emulation_speed(0)
 
     score = 0
-    while solution_idx != None:
+    while solution_idx is not None:
         board = getCurrentBoard()
         data_inputs = np.array([[getHoles(board)], [getBumpiness(board)], [getAggregateHeight(board)],
                                 [pyboy.get_memory_value(0xc203)], [pyboy.get_memory_value(0xC213)]])
@@ -354,24 +381,26 @@ def fitness_function(solution, solution_idx):
                                        data_inputs=data_inputs,
                                        problem_type="regression")
         bestMove = calculateBestMove(predictions[0])
-        if bestMove[2] == 0:
+        predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
+        if bestMove[2] == 0 or isinstance(predictedBoard, bool):
             break
         action(bestMove[0], bestMove[1])
-        score += bestMove[2]
+        # score += bestMove[2]
+        score += calculateReward(predictedBoard, predictions[0])
+        pyboy.tick()
 
-    print(solution_idx, score)
+    print(solution_idx, score, getLinesCleared())
     return score
 
 
 GANN_instance = pygad.gann.GANN(num_solutions=50,
                                 num_neurons_input=1,
                                 num_neurons_hidden_layers=[5, 7, 5],
-                                num_neurons_output=5  ,
+                                num_neurons_output=5,
                                 hidden_activations=["relu", "relu", "relu"],
                                 output_activation="softmax")
 population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
 print(" . ", population_vectors)
-
 
 num_generations = 20
 num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
@@ -428,4 +457,3 @@ solution, solution_fitness, solution_idx = ga_instance.best_solution()
 print("Parameters of the best solution : {solution}".format(solution=solution))
 print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
 print("Index of the best solution : {solution_idx}".format(solution_idx=solution_idx))
-
