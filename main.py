@@ -4,8 +4,6 @@ import numpy as np
 from pyboy import PyBoy, WindowEvent
 import pygad
 import pygad.gann
-# from geneal.genetic_algorithms import ContinuousGenAlgSolver
-# from geneal.applications.fitness_functions.continuous import fitness_functions_continuous
 
 pyboy = PyBoy('Tetris.gb', game_wrapper=True)
 tetris = pyboy.game_wrapper()
@@ -162,19 +160,13 @@ def getCurrentBoard():
 def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), startingBoard=getCurrentBoard()):
     num = -1
 
-    # print(current, translate, turn)
-
     coords = getStartCoords(tetromino)
 
     board = np.copy(startingBoard)
-    # print(getCurrentTetromino(), tetromino)
-    # print(board)
 
     for item in range(len(coords)):
-        # print("start ", item, ": ", board[coords[item][0], coords[item][1]])
         board[coords[item][0], coords[item][1]] = 0
 
-    # print(board)
 
     for column in range(len(board[2])):
         if board[2][column] != 0:
@@ -341,12 +333,6 @@ def calculateBestMove(weights):
                 pass
     return [turns, translate, temp]
 
-
-# class tetrisAI(ContinuousGenAlgSolver):
-#     def __init__(self, *args, **kwargs):
-#         ContinuousGenAlgSolver.__init__(self, *args, **kwargs)
-
-
 # fitness function to be maximized
 def fitness_function(solution, solution_idx):
     global GANN_instance
@@ -442,19 +428,4 @@ solution, solution_fitness, solution_idx = ga_instance.best_solution()
 print("Parameters of the best solution : {solution}".format(solution=solution))
 print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
 print("Index of the best solution : {solution_idx}".format(solution_idx=solution_idx))
-
-# solver = tetrisAI(
-#     n_genes=5,  # number of variables defining the problem
-#     pop_size=100,  # TODO: YL set it to 1000. Set ideal population size
-#     max_gen=10,  # TODO: YL did 500 max moves... we have to do something else for upper limit
-#     mutation_rate=0.1,  # TODO: YL did 0.05... Set ideal mutation rate.
-#     selection_rate=0.4,  # percentage of the population to select for mating
-#     # TODO: YL did 0.1
-#     selection_strategy="tournament",  # TODO: YL did tournament style... choose an ideal strategy
-#     problem_type=float,
-#     variables_limits=(-1, 1)
-# )
-#
-# solver.solve()
-
 
