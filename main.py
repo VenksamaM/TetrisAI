@@ -3,8 +3,8 @@ import types
 
 import numpy as np
 from pyboy import PyBoy, WindowEvent
-import pygad
 import pygad.gann
+import pygad.nn
 
 pyboy = PyBoy('Tetris.gb', game_wrapper=True)
 tetris = pyboy.game_wrapper()
@@ -119,9 +119,12 @@ def getLevel():
     return tetris.level
 
 
-def calculateReward(board, w):
-    reward = getCompleteLines(board)
+def calculateReward(board):
+    reward = 0
+    if board[-1][0] != 88:
+        reward = getCompleteLines(board)
     if reward > 0:
+        print(board)
         holes = getHoles(board)
         aggregateHeight = getAggregateHeight(board)
         bumpiness = getBumpiness(board)
@@ -163,8 +166,7 @@ def calculateSubRewards(board):
                     flag = True
                     lines += 1
                 count += 1
-
-    return (count / lines) / 100
+    return (count / (lines / 2)) / 100
 
 
 def getCurrentBoard():
@@ -314,14 +316,12 @@ pyboy.tick()
 
 
 def calculateBestMove(w):
-    score = 0
     turns = 0
     translate = 0
     temp = 0
-    board = getCurrentBoard()
+    # board = getCurrentBoard()
     # print(board, "\n\n")
-    count = 0
-    for i in range(-5, 5):
+    for i in range(-6, 6):
         for j in range(4):
             try:
                 predictedBoard = get_predicted_board(i, j, getCurrentTetromino(), getCurrentBoard())
@@ -329,11 +329,11 @@ def calculateBestMove(w):
                 # prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3],
                 # weights[4])
                 prediction = w[0] * getCompleteLines(tempBoard) + \
-                             w[1] * getHoles(tempBoard) + \
-                             w[2] * getAggregateHeight(tempBoard) + \
-                             w[3] * getBumpiness(tempBoard)
+                    w[1] * getHoles(tempBoard) + \
+                    w[2] * getAggregateHeight(tempBoard) + \
+                    w[3] * getBumpiness(tempBoard)
 
-                for i2 in range(-5, 5):
+                for i2 in range(-6, 6):
                     for j2 in range(4):
                         try:
                             predictedBoard2 = get_predicted_board(i2, j2, getNextTetromino(), tempBoard)
@@ -342,21 +342,19 @@ def calculateBestMove(w):
                             #                               weights[2], weights[3], weights[4])
 
                             prediction2 = w[0] * getCompleteLines(predictedBoard2) + \
-                                          w[1] * getHoles(predictedBoard2) + \
-                                          w[2] * getAggregateHeight(predictedBoard2) + \
-                                          w[3] * getBumpiness(predictedBoard2)
+                                w[1] * getHoles(predictedBoard2) + \
+                                w[2] * getAggregateHeight(predictedBoard2) + \
+                                w[3] * getBumpiness(predictedBoard2)
 
                             if prediction + prediction2 > temp:
                                 turns = i
                                 translate = j
                                 temp = prediction + prediction2
-                            # print(count)
-                            # count += 1
                         except:
                             pass
             except:
                 pass
-    print("temp = ", temp)
+    # print("temp = ", temp)
     return [turns, translate, temp]
 
 
@@ -364,7 +362,7 @@ def calculateBestMove(w):
 def fitness_function(solution, solution_idx):
     global GANN_instance
 
-    # print("::: ", predictions, "\n")
+    # print("::: ", solution, "\n")
 
     # board = getCurrentBoard()
 
@@ -380,13 +378,14 @@ def fitness_function(solution, solution_idx):
         predictions = pygad.nn.predict(last_layer=GANN_instance.population_networks[solution_idx],
                                        data_inputs=data_inputs,
                                        problem_type="regression")
+        # print("-=-=-", predictions)
         bestMove = calculateBestMove(predictions[0])
         predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
         if bestMove[2] == 0 or isinstance(predictedBoard, bool):
             break
         action(bestMove[0], bestMove[1])
         # score += bestMove[2]
-        score += calculateReward(predictedBoard, predictions[0])
+        score += calculateReward(predictedBoard)
         pyboy.tick()
 
     print(solution_idx, score, getLinesCleared())
@@ -395,15 +394,15 @@ def fitness_function(solution, solution_idx):
 
 GANN_instance = pygad.gann.GANN(num_solutions=50,
                                 num_neurons_input=1,
-                                num_neurons_hidden_layers=[5, 7, 5],
+                                num_neurons_hidden_layers=[5],
                                 num_neurons_output=5,
-                                hidden_activations=["relu", "relu", "relu"],
+                                hidden_activations=["relu"],
                                 output_activation="softmax")
 population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
 print(" . ", population_vectors)
 
-num_generations = 20
-num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
+num_generations = 5
+num_parents_mating = 4  # percentage of total population (sol_per_pop * 0.1)
 
 initial_population = population_vectors.copy()
 # sol_per_pop = 5
