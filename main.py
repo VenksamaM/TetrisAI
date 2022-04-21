@@ -266,7 +266,7 @@ def getAggregateHeight(board):
     average = 0
     for column in range(len(board[0])):
         total = 0
-        for row in range(len(board)):
+        for row in range(3, len(board)):
             if board[row][column] != 0:
                 total += len(board) - row
                 break
@@ -278,11 +278,14 @@ def getAggregateHeight(board):
 def getBumpiness(board):
     heights = []
     bumpiness = 0
+
     for column in range(len(board[0])):
-        for row in range(len(board)):
+        nextHeight = 0
+        for row in range(3, len(board)):
             if board[row][column] != 0:
-                heights.append(len(board) - row)
+                nextHeight = len(board) - row
                 break
+        heights.append(nextHeight)
     for i in range(len(heights) - 1):
         bumpiness += abs(heights[i] - heights[i + 1])
     return bumpiness
@@ -292,7 +295,7 @@ def getHoles(board):
     holes = 0
     for column in range(len(board[0])):
         flag = False
-        for row in range(len(board)):
+        for row in range(3, len(board)):
             if board[row][column] != 0:
                 flag = True
             elif flag:
@@ -373,12 +376,14 @@ def fitness_function(solution, solution_idx):
     score = 0
     while solution_idx is not None:
         board = getCurrentBoard()
-        data_inputs = np.array([[getHoles(board)], [getBumpiness(board)], [getAggregateHeight(board)],
-                                [pyboy.get_memory_value(0xc203)], [pyboy.get_memory_value(0xC213)]])
+
+        data_inputs = np.array([[getHoles(board), getBumpiness(board), getAggregateHeight(board),
+                                pyboy.get_memory_value(0xc203), pyboy.get_memory_value(0xC213)]])
+        print(solution_idx, data_inputs)
         predictions = pygad.nn.predict(last_layer=GANN_instance.population_networks[solution_idx],
                                        data_inputs=data_inputs,
                                        problem_type="regression")
-        # print("-=-=-", predictions)
+        print("predictions =  ", predictions)
         bestMove = calculateBestMove(predictions[0])
         predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
         if bestMove[2] == 0 or isinstance(predictedBoard, bool):
@@ -393,7 +398,7 @@ def fitness_function(solution, solution_idx):
 
 
 GANN_instance = pygad.gann.GANN(num_solutions=50,
-                                num_neurons_input=1,
+                                num_neurons_input=5,
                                 num_neurons_hidden_layers=[5],
                                 num_neurons_output=5,
                                 hidden_activations=["relu"],
