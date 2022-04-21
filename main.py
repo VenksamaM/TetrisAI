@@ -96,13 +96,13 @@ def getStartCoords(tetromino):
     elif tetromino == "S":
         coords = [[2, 3], [2, 4], [1, 4], [1, 5]]
     elif tetromino == "T":
-        coords = [[1, 3], [1, 4], [1, 5], [2, 4]]
+        coords = [[1, 3], [1, 4], [2, 4], [1, 5]]
     elif tetromino == "O":
         coords = [[1, 4], [1, 5], [2, 4], [2, 5]]
     elif tetromino == "J":
         coords = [[1, 3], [1, 4], [1, 5], [2, 5]]
     elif tetromino == "L":
-        coords = [[1, 3], [1, 4], [1, 5], [2, 3]]
+        coords = [[1, 3], [2, 3], [1, 4], [1, 5]]
 
     return coords
 
@@ -215,8 +215,8 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
 
     drop = True
     while drop:
-        for row in range(len(coords)):
-            if coords[row][0] > 16 or board[coords[row][0] + 1][coords[row][1]] != 0:
+        for block in range(len(coords)):
+            if coords[block][0] > 16 or board[coords[block][0] + 1][coords[block][1]] != 0:
                 drop = False
                 break
 
@@ -233,9 +233,9 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
 
 rotation = {
     'I1': [[1, 1], [0, 0], [-1, -1], [-2, -2]],
-    'T1': [[-1, 1], [0, 0], [1, -1], [-1, -1]],
-    'T2': [[0, 2], [0, 0], [0, -2], [-2, 0]],
-    'T3': [[1, 1], [0, 0], [-1, -1], [-1, 1]],
+    'T1': [[-1, 1], [0, 0], [-1, -1], [1, -1]],
+    'T2': [[0, 2], [0, 0], [-2, 0], [0, -2]],
+    'T3': [[1, 1], [0, 0], [-1, 1], [-1, -1]],
     'T4': [[0, 0], [0, 0], [0, 0], [0, 0]],
     'S1': [[1, 1], [0, 0], [1, -1], [0, -2]],
     'Z1': [[0, 1], [-1, 0], [0, -1], [-1, -2]],  # [[-1, 1], [0, 0], [-1, -1], [0, -2]],
@@ -244,9 +244,9 @@ rotation = {
     'J2': [[0, 2], [0, 0], [0, -2], [-2, -2]],
     'J3': [[1, 1], [0, 0], [-1, -1], [-2, 0]],
     'J4': [[0, 0], [0, 0], [0, 0], [0, 0]],
-    'L1': [[-1, 1], [0, 0], [1, -1], [-2, 0]],
-    'L2': [[0, 2], [0, 0], [0, -2], [-2, 2]],
-    'L3': [[1, 1], [0, 0], [-1, -1], [0, 2]],
+    'L1': [[-1, 1], [-2, 0], [0, 0], [1, -1]],
+    'L2': [[0, 2], [-2, 2], [0, 0], [0, -2]],
+    'L3': [[1, 1], [0, 2], [0, 0], [-1, -1]],
     'L4': [[0, 0], [0, 0], [0, 0], [0, 0]]
 }
 
@@ -321,43 +321,50 @@ pyboy.tick()
 def calculateBestMove(w):
     turns = 0
     translate = 0
-    temp = 0
+    temp = float('-inf')
     # board = getCurrentBoard()
     # print(board, "\n\n")
     for i in range(-6, 6):
-        for j in range(4):
-            try:
-                predictedBoard = get_predicted_board(i, j, getCurrentTetromino(), getCurrentBoard())
-                tempBoard = np.copy(predictedBoard)
-                # prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3],
-                # weights[4])
-                prediction = w[0] * getCompleteLines(tempBoard) + \
-                    w[1] * getHoles(tempBoard) + \
-                    w[2] * getAggregateHeight(tempBoard) + \
-                    w[3] * getBumpiness(tempBoard)
+        for j in range(5):
+            predictedBoard = get_predicted_board(i, j, getCurrentTetromino(), getCurrentBoard())
 
-                for i2 in range(-6, 6):
-                    for j2 in range(4):
-                        try:
-                            predictedBoard2 = get_predicted_board(i2, j2, getNextTetromino(), tempBoard)
-                            # prediction2 = calculateReward(predictedBoard2,
-                            #                               weights[0], weights[1],
-                            #                               weights[2], weights[3], weights[4])
+            if isinstance(predictedBoard, bool):
+                # print("breaking 1\n")
+                break
 
-                            prediction2 = w[0] * getCompleteLines(predictedBoard2) + \
-                                w[1] * getHoles(predictedBoard2) + \
-                                w[2] * getAggregateHeight(predictedBoard2) + \
-                                w[3] * getBumpiness(predictedBoard2)
+            tempBoard = np.copy(predictedBoard)
+            # prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3],
+            # weights[4])
+            prediction = w[0] * getCompleteLines(tempBoard) + \
+                         w[1] * getHoles(tempBoard) + \
+                         w[2] * getAggregateHeight(tempBoard) + \
+                         w[3] * getBumpiness(tempBoard)
 
-                            if prediction + prediction2 > temp:
-                                turns = i
-                                translate = j
-                                temp = prediction + prediction2
-                        except:
-                            pass
-            except:
-                pass
+            for i2 in range(-6, 6):
+                for j2 in range(5):
+                    predictedBoard2 = get_predicted_board(i2, j2, getNextTetromino(), tempBoard)
+
+                    if isinstance(predictedBoard2, bool):
+                        # print("breaking 2 \n")
+                        break
+                    # prediction2 = calculateReward(predictedBoard2,
+                    #                               weights[0], weights[1],
+                    #                               weights[2], weights[3], weights[4])
+
+                    prediction2 = w[0] * getCompleteLines(predictedBoard2) + \
+                                  w[1] * getHoles(predictedBoard2) + \
+                                  w[2] * getAggregateHeight(predictedBoard2) + \
+                                  w[3] * getBumpiness(predictedBoard2)
+
+                    if prediction + prediction2 > temp:
+                        # print("temp check")
+                        turns = i
+                        translate = j
+                        temp = prediction + prediction2
     # print("temp = ", temp)
+    if temp == float('-inf'):
+        print("bad")
+        pass
     return [turns, translate, temp]
 
 
@@ -379,14 +386,14 @@ def fitness_function(solution, solution_idx):
 
         data_inputs = np.array([[getHoles(board), getBumpiness(board), getAggregateHeight(board),
                                 pyboy.get_memory_value(0xc203), pyboy.get_memory_value(0xC213)]])
-        print(solution_idx, data_inputs)
+        # print(solution_idx, data_inputs)
         predictions = pygad.nn.predict(last_layer=GANN_instance.population_networks[solution_idx],
                                        data_inputs=data_inputs,
                                        problem_type="regression")
-        print("predictions =  ", predictions)
+        # print("predictions =  ", predictions[0])
         bestMove = calculateBestMove(predictions[0])
         predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
-        if bestMove[2] == 0 or isinstance(predictedBoard, bool):
+        if bestMove[2] == float('-inf') or isinstance(predictedBoard, bool):
             break
         action(bestMove[0], bestMove[1])
         # score += bestMove[2]
