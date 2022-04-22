@@ -124,7 +124,7 @@ def calculateReward(board):
     if board[-1][0] != 88:
         reward = getCompleteLines(board)
     if reward > 0:
-        print(board)
+        # print(board)
         holes = getHoles(board)
         aggregateHeight = getAggregateHeight(board)
         bumpiness = getBumpiness(board)
@@ -362,9 +362,9 @@ def calculateBestMove(w):
                         translate = j
                         temp = prediction + prediction2
     # print("temp = ", temp)
-    if temp == float('-inf'):
-        print("bad")
-        pass
+    # if temp == float('-inf'):
+    #     print("bad")
+    #     pass
     return [turns, translate, temp]
 
 
@@ -404,7 +404,7 @@ def fitness_function(solution, solution_idx):
     return score
 
 
-GANN_instance = pygad.gann.GANN(num_solutions=50,
+GANN_instance = pygad.gann.GANN(num_solutions=250,
                                 num_neurons_input=5,
                                 num_neurons_hidden_layers=[5],
                                 num_neurons_output=5,
@@ -413,7 +413,7 @@ GANN_instance = pygad.gann.GANN(num_solutions=50,
 population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
 print(" . ", population_vectors)
 
-num_generations = 5
+num_generations = 50
 num_parents_mating = 4  # percentage of total population (sol_per_pop * 0.1)
 
 initial_population = population_vectors.copy()
@@ -430,6 +430,9 @@ mutation_type = "adaptive"  # "adaptive" is IMPROVEMENT TO YL
 mutation_percent_genes = [50, 10]
 
 
+filename = 'genetic'
+
+
 def on_gen(ga):
     global GANN_instance
 
@@ -439,7 +442,25 @@ def on_gen(ga):
 
     print("Fitness of the best solution :", ga.best_solution()[1])
     print("Generation : ", ga.generations_completed)
-    print()
+    print("\n\n\n\n\n\n")
+
+    ga_instance.save(filename=filename)
+
+
+def callback_generation(ga_instance):
+    global GANN_instance, last_fitness
+
+    population_matrices = pygad.gann.population_as_matrices(population_networks=GANN_instance.population_networks,
+                                                            population_vectors=ga_instance.population)
+
+    GANN_instance.update_population_trained_weights(population_trained_weights=population_matrices)
+
+    print("Generation = {generation}".format(generation=ga_instance.generations_completed))
+    print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution()[1]))
+    print("Change     = {change}".format(change=ga_instance.best_solution()[1] - last_fitness))
+
+    last_fitness = ga_instance.best_solution()[1].copy()
+    last_fitness.save(filename=filename)
 
 
 ga_instance = pygad.GA(num_generations=num_generations,
@@ -451,17 +472,19 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        crossover_type=crossover_type,
                        mutation_type=mutation_type,
                        mutation_percent_genes=mutation_percent_genes,
-                       on_generation=on_gen)
+                       on_generation=callback_generation)
+
+
+
+# load current model
+loaded_ga_instance = pygad.load(filename=filename)
 
 ga_instance.run()  # run GA
 ga_instance.plot_fitness()  # plot graph
 
 # save current model
-filename = 'genetic'
 ga_instance.save(filename=filename)
 
-# load current model
-# loaded_ga_instance = pygad.load(filename=filename)
 
 # get info about best solution
 solution, solution_fitness, solution_idx = ga_instance.best_solution()
