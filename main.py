@@ -58,9 +58,7 @@ def action(translate, turn):
     for _ in range(abs(translate)):
         if translate < 0:
             action_translate("Left")
-            action_translate("Left")
         else:
-            action_translate("Right")
             action_translate("Right")
 
     for _ in range(turn):
@@ -232,20 +230,24 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
                 turn = 0
 
     move_to_edge = True
-    if flag == -1:
+    while flag == -1:
         for row in range(0, len(coords)):
-            if coords[row][1] - 1 <= 0:
+            if coords[row][1] - 1 < 0:
                 move_to_edge = False
+                flag = 0
+                break
 
         if move_to_edge:
             for row in range(0, len(coords)):
+
                 coords[row][1] -= 1
                 # coords[i][0] +=  1
-    elif flag == 1:
+    while flag == 1:
         for row in range(0, len(coords)):
             if coords[row][1] + 1 >= 10:
                 move_to_edge = False
-
+                flag = 0
+                break
         if move_to_edge:
             for row in range(0, len(coords)):
                 coords[row][1] += 1
@@ -425,7 +427,7 @@ def fitness_function(sol, sol_idx):
     pyboy.set_emulation_speed(0)
 
     score = 0
-    while sol_idx is not None:
+    while True:
         board = getCurrentBoard()
 
         data_inputs = np.array([[getHoles(board), getBumpiness(board), getAggregateHeight(board),
@@ -440,9 +442,19 @@ def fitness_function(sol, sol_idx):
         if bestMove[2] == float('-inf') or isinstance(predictedBoard, bool):
             break
         action(bestMove[0], bestMove[1])
-        # score += bestMove[2]
-        score += calculateReward(predictedBoard)
-        pyboy.tick()
+        if tetris.game_over():
+            break
+        # print(board_check(predictedBoard, getCurrentBoard()), bestMove[0], bestMove[1]))
+        # if not board_check(predictedBoard, getCurrentBoard()):
+            # print(bestMove[0], bestMove[1])
+            # print(predictedBoard)
+
+        if board_check(predictedBoard, getCurrentBoard()):
+            # score += bestMove[2]
+            score += calculateReward(predictedBoard)
+            pyboy.tick()
+        else:
+            print("game Over")
 
     print(sol_idx, score, getLinesCleared())
     return score
