@@ -1,6 +1,3 @@
-import random
-import types
-
 import numpy as np
 from pyboy import PyBoy, WindowEvent
 import pygad.gann
@@ -52,6 +49,11 @@ def drop_down():
 # go n_dir spaces in direction, and rotate n_turn times
 def action(translate, turn):
     # if translate is negative, move left. Else, right
+    flag = 0
+    if translate <= -5:
+        flag = -1
+    elif translate >= 5:
+        flag = 1
 
     for _ in range(abs(translate)):
         if translate < 0:
@@ -61,6 +63,14 @@ def action(translate, turn):
 
     for _ in range(turn):
         action_turn()
+
+    if flag == -1:
+        action_translate("Left")
+        action_translate("Left")
+
+    elif flag == 1:
+        action_translate("Right")
+        action_translate("Right")
 
     drop_down()
 
@@ -96,13 +106,13 @@ def getStartCoords(tetromino):
     elif tetromino == "S":
         coords = [[2, 3], [2, 4], [1, 4], [1, 5]]
     elif tetromino == "T":
-        coords = [[1, 3], [1, 4], [1, 5], [2, 4]]
+        coords = [[1, 3], [1, 4], [2, 4], [1, 5]]
     elif tetromino == "O":
         coords = [[1, 4], [1, 5], [2, 4], [2, 5]]
     elif tetromino == "J":
         coords = [[1, 3], [1, 4], [1, 5], [2, 5]]
     elif tetromino == "L":
-        coords = [[1, 3], [1, 4], [1, 5], [2, 3]]
+        coords = [[1, 3], [2, 3], [1, 4], [1, 5]]
 
     return coords
 
@@ -124,7 +134,7 @@ def calculateReward(board):
     if board[-1][0] != 88:
         reward = getCompleteLines(board)
     if reward > 0:
-        print(board)
+        # print(board)
         holes = getHoles(board)
         aggregateHeight = getAggregateHeight(board)
         bumpiness = getBumpiness(board)
@@ -177,6 +187,7 @@ def getCurrentBoard():
 # 17
 def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), startingBoard=getCurrentBoard()):
     num = -1
+    flag = 0
 
     coords = getStartCoords(tetromino)
 
@@ -189,6 +200,11 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
         if board[2][column] != 0:
             # print("Prediction failure.")
             return False
+
+    if translate >= 5:
+        flag = 1
+    elif translate <= -5:
+        flag = -1
 
     while translate != 0:
         if coords[0][1] + translate < 0:
@@ -213,10 +229,34 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
                 coords = tempCoords
                 turn = 0
 
+    move_to_edge = True
+    while flag == -1:
+        for row in range(0, len(coords)):
+            if coords[row][1] - 1 < 0:
+                move_to_edge = False
+                flag = 0
+                break
+
+        if move_to_edge:
+            for row in range(0, len(coords)):
+
+                coords[row][1] -= 1
+                # coords[i][0] +=  1
+    while flag == 1:
+        for row in range(0, len(coords)):
+            if coords[row][1] + 1 >= 10:
+                move_to_edge = False
+                flag = 0
+                break
+        if move_to_edge:
+            for row in range(0, len(coords)):
+                coords[row][1] += 1
+                # coords[i][0] +=  1
+
     drop = True
     while drop:
-        for row in range(len(coords)):
-            if coords[row][0] > 16 or board[coords[row][0] + 1][coords[row][1]] != 0:
+        for block in range(len(coords)):
+            if coords[block][0] > 16 or board[coords[block][0] + 1][coords[block][1]] != 0:
                 drop = False
                 break
 
@@ -233,9 +273,9 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
 
 rotation = {
     'I1': [[1, 1], [0, 0], [-1, -1], [-2, -2]],
-    'T1': [[-1, 1], [0, 0], [1, -1], [-1, -1]],
-    'T2': [[0, 2], [0, 0], [0, -2], [-2, 0]],
-    'T3': [[1, 1], [0, 0], [-1, -1], [-1, 1]],
+    'T1': [[-1, 1], [0, 0], [-1, -1], [1, -1]],
+    'T2': [[0, 2], [0, 0], [-2, 0], [0, -2]],
+    'T3': [[1, 1], [0, 0], [-1, 1], [-1, -1]],
     'T4': [[0, 0], [0, 0], [0, 0], [0, 0]],
     'S1': [[1, 1], [0, 0], [1, -1], [0, -2]],
     'Z1': [[0, 1], [-1, 0], [0, -1], [-1, -2]],  # [[-1, 1], [0, 0], [-1, -1], [0, -2]],
@@ -244,9 +284,9 @@ rotation = {
     'J2': [[0, 2], [0, 0], [0, -2], [-2, -2]],
     'J3': [[1, 1], [0, 0], [-1, -1], [-2, 0]],
     'J4': [[0, 0], [0, 0], [0, 0], [0, 0]],
-    'L1': [[-1, 1], [0, 0], [1, -1], [-2, 0]],
-    'L2': [[0, 2], [0, 0], [0, -2], [-2, 2]],
-    'L3': [[1, 1], [0, 0], [-1, -1], [0, 2]],
+    'L1': [[-1, 1], [-2, 0], [0, 0], [1, -1]],
+    'L2': [[0, 2], [-2, 2], [0, 0], [0, -2]],
+    'L3': [[1, 1], [0, 2], [0, 0], [-1, -1]],
     'L4': [[0, 0], [0, 0], [0, 0], [0, 0]]
 }
 
@@ -321,51 +361,64 @@ pyboy.tick()
 def calculateBestMove(w):
     turns = 0
     translate = 0
-    temp = 0
+    temp = float('-inf')
     # board = getCurrentBoard()
     # print(board, "\n\n")
     for i in range(-6, 6):
-        for j in range(4):
-            try:
-                predictedBoard = get_predicted_board(i, j, getCurrentTetromino(), getCurrentBoard())
-                tempBoard = np.copy(predictedBoard)
-                # prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3],
-                # weights[4])
-                prediction = w[0] * getCompleteLines(tempBoard) + \
-                    w[1] * getHoles(tempBoard) + \
-                    w[2] * getAggregateHeight(tempBoard) + \
-                    w[3] * getBumpiness(tempBoard)
+        for j in range(5):
+            predictedBoard = get_predicted_board(i, j, getCurrentTetromino(), getCurrentBoard())
 
-                for i2 in range(-6, 6):
-                    for j2 in range(4):
-                        try:
-                            predictedBoard2 = get_predicted_board(i2, j2, getNextTetromino(), tempBoard)
-                            # prediction2 = calculateReward(predictedBoard2,
-                            #                               weights[0], weights[1],
-                            #                               weights[2], weights[3], weights[4])
+            if isinstance(predictedBoard, bool):
+                # print("breaking 1\n")
+                break
 
-                            prediction2 = w[0] * getCompleteLines(predictedBoard2) + \
-                                w[1] * getHoles(predictedBoard2) + \
-                                w[2] * getAggregateHeight(predictedBoard2) + \
-                                w[3] * getBumpiness(predictedBoard2)
+            tempBoard = np.copy(predictedBoard)
+            # prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3],
+            # weights[4])
+            prediction = w[0] * getCompleteLines(tempBoard) + \
+                w[1] * getHoles(tempBoard) + \
+                w[2] * getAggregateHeight(tempBoard) + \
+                w[3] * getBumpiness(tempBoard)
 
-                            if prediction + prediction2 > temp:
-                                turns = i
-                                translate = j
-                                temp = prediction + prediction2
-                        except:
-                            pass
-            except:
-                pass
+            for i2 in range(-6, 6):
+                for j2 in range(5):
+                    predictedBoard2 = get_predicted_board(i2, j2, getNextTetromino(), tempBoard)
+
+                    if isinstance(predictedBoard2, bool):
+                        # print("breaking 2 \n")
+                        break
+                    # prediction2 = calculateReward(predictedBoard2,
+                    #                               weights[0], weights[1],
+                    #                               weights[2], weights[3], weights[4])
+
+                    prediction2 = w[0] * getCompleteLines(predictedBoard2) + \
+                        w[1] * getHoles(predictedBoard2) + \
+                        w[2] * getAggregateHeight(predictedBoard2) + \
+                        w[3] * getBumpiness(predictedBoard2)
+
+                    if prediction + prediction2 > temp:
+                        # print("temp check")
+                        turns = i
+                        translate = j
+                        temp = prediction + prediction2
     # print("temp = ", temp)
+    # if temp == float('-inf'):
+    #     print("bad")
+    #     pass
     return [turns, translate, temp]
 
 
-# fitness function to be maximized
-def fitness_function(solution, solution_idx):
-    global GANN_instance
+currentGen = 0
 
-    # print("::: ", solution, "\n")
+
+# fitness function to be maximized
+def fitness_function(sol, sol_idx):
+    global GANN_instance, ga_instance, currentGen
+
+    # if ga_instance.generations_completed != currentGen:
+    #     currentGen = ga_instance.generations_completed
+    #     print("Generation = {generation}".format(generation=ga_instance.generations_completed), currentGen)
+    #     ga_instance.save(filename='genetic')
 
     # board = getCurrentBoard()
 
@@ -374,30 +427,40 @@ def fitness_function(solution, solution_idx):
     pyboy.set_emulation_speed(0)
 
     score = 0
-    while solution_idx is not None:
+    while True:
         board = getCurrentBoard()
 
         data_inputs = np.array([[getHoles(board), getBumpiness(board), getAggregateHeight(board),
-                                pyboy.get_memory_value(0xc203), pyboy.get_memory_value(0xC213)]])
-        print(solution_idx, data_inputs)
-        predictions = pygad.nn.predict(last_layer=GANN_instance.population_networks[solution_idx],
+                                 pyboy.get_memory_value(0xc203), pyboy.get_memory_value(0xC213)]])
+        # print(solution_idx, data_inputs)
+        predictions = pygad.nn.predict(last_layer=GANN_instance.population_networks[sol_idx],
                                        data_inputs=data_inputs,
                                        problem_type="regression")
-        print("predictions =  ", predictions)
+        # print("predictions =  ", predictions[0])
         bestMove = calculateBestMove(predictions[0])
         predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
-        if bestMove[2] == 0 or isinstance(predictedBoard, bool):
+        if bestMove[2] == float('-inf') or isinstance(predictedBoard, bool):
             break
         action(bestMove[0], bestMove[1])
-        # score += bestMove[2]
-        score += calculateReward(predictedBoard)
-        pyboy.tick()
+        if tetris.game_over():
+            break
+        # print(board_check(predictedBoard, getCurrentBoard()), bestMove[0], bestMove[1]))
+        # if not board_check(predictedBoard, getCurrentBoard()):
+            # print(bestMove[0], bestMove[1])
+            # print(predictedBoard)
 
-    print(solution_idx, score, getLinesCleared())
+        if board_check(predictedBoard, getCurrentBoard()):
+            # score += bestMove[2]
+            score += calculateReward(predictedBoard)
+            pyboy.tick()
+        else:
+            print("game Over")
+
+    print(sol_idx, score, getLinesCleared())
     return score
 
 
-GANN_instance = pygad.gann.GANN(num_solutions=50,
+GANN_instance = pygad.gann.GANN(num_solutions=250,
                                 num_neurons_input=5,
                                 num_neurons_hidden_layers=[5],
                                 num_neurons_output=5,
@@ -406,10 +469,11 @@ GANN_instance = pygad.gann.GANN(num_solutions=50,
 population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
 print(" . ", population_vectors)
 
-num_generations = 5
-num_parents_mating = 4  # percentage of total population (sol_per_pop * 0.1)
+num_generations = 50
+num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
 
 initial_population = population_vectors.copy()
+print("\n ", len(population_vectors), len(initial_population), len(population_vectors[0]), len(initial_population[0]))
 # sol_per_pop = 5
 # num_genes = 5
 
@@ -419,8 +483,10 @@ initial_population = population_vectors.copy()
 parent_selection_type = "tournament"
 keep_parents = 1
 crossover_type = "single_point"
-mutation_type = "adaptive"  # "adaptive" is IMPROVEMENT TO YL
-mutation_percent_genes = [50, 10]
+mutation_type = "random"  # "adaptive" is IMPROVEMENT TO YL
+mutation_percent_genes = np.array([50, 10])
+
+filename = 'genetic'
 
 
 def on_gen(ga):
@@ -430,9 +496,28 @@ def on_gen(ga):
                                                             population_vectors=ga.population)
     GANN_instance.update_population_trained_weights(population_trained_weights=population_matrices)
 
-    print("Fitness of the best solution :", ga.best_solution()[1])
     print("Generation : ", ga.generations_completed)
-    print()
+    print("\n\n\n\n\n\n")
+
+    ga_instance.save(filename=filename)
+
+
+# def callback_generation(ga_instance):
+#     global GANN_instance, last_fitness
+#
+#     population_matrices = pygad.gann.population_as_matrices(population_networks=GANN_instance.population_networks,
+#                                                             population_vectors=ga_instance.population)
+#
+#     GANN_instance.update_population_trained_weights(population_trained_weights=population_matrices)
+#
+#     print("Generation = {generation}".format(generation=ga_instance.generations_completed))
+#     print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution()[1]))
+#     print("Change     = {change}".format(change=ga_instance.best_solution()[1] - last_fitness))
+#
+#     last_fitness = ga_instance.best_solution()[1].copy()
+#     last_fitness.save(filename=filename)
+#
+#     return "stop"
 
 
 ga_instance = pygad.GA(num_generations=num_generations,
@@ -443,18 +528,16 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        keep_parents=keep_parents,
                        crossover_type=crossover_type,
                        mutation_type=mutation_type,
-                       mutation_percent_genes=mutation_percent_genes,
                        on_generation=on_gen)
+
+# load current model
+loaded_ga_instance = pygad.load(filename=filename)
 
 ga_instance.run()  # run GA
 ga_instance.plot_fitness()  # plot graph
 
 # save current model
-filename = 'genetic'
 ga_instance.save(filename=filename)
-
-# load current model
-# loaded_ga_instance = pygad.load(filename=filename)
 
 # get info about best solution
 solution, solution_fitness, solution_idx = ga_instance.best_solution()
