@@ -355,7 +355,7 @@ def getCompleteLines(board):
     return lines
 
 
-pyboy.tick()
+# pyboy.tick()
 
 
 def calculateBestMove(w):
@@ -455,6 +455,7 @@ def fitness_function(sol, sol_idx):
             pyboy.tick()
         else:
             print("game Over")
+            pyboy.tick()
 
     print(sol_idx, score, getLinesCleared())
     return score
@@ -472,8 +473,8 @@ print(" . ", population_vectors)
 num_generations = 50
 num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
 
-initial_population = population_vectors.copy()
-print("\n ", len(population_vectors), len(initial_population), len(population_vectors[0]), len(initial_population[0]))
+# initial_population = population_vectors.copy()
+# print("\n ", len(population_vectors), len(initial_population), len(population_vectors[0]), len(initial_population[0]))
 # sol_per_pop = 5
 # num_genes = 5
 
@@ -520,18 +521,20 @@ def on_gen(ga):
 #     return "stop"
 
 
-ga_instance = pygad.GA(num_generations=num_generations,
-                       num_parents_mating=num_parents_mating,
-                       fitness_func=fitness_function,
-                       initial_population=initial_population,
-                       parent_selection_type=parent_selection_type,
-                       keep_parents=keep_parents,
-                       crossover_type=crossover_type,
-                       mutation_type=mutation_type,
-                       on_generation=on_gen)
+# ga_instance = pygad.GA(num_generations=num_generations,
+#                        num_parents_mating=num_parents_mating,
+#                        fitness_func=fitness_function,
+#                        initial_population=initial_population,
+#                        parent_selection_type=parent_selection_type,
+#                        keep_parents=keep_parents,
+#                        crossover_type=crossover_type,
+#                        mutation_type=mutation_type,
+#                        on_generation=on_gen)
 
 # load current model
-loaded_ga_instance = pygad.load(filename=filename)
+loaded_ga_instance = pygad.gann.load(filename=filename)
+
+ga_instance = loaded_ga_instance
 
 ga_instance.run()  # run GA
 ga_instance.plot_fitness()  # plot graph
