@@ -40,9 +40,16 @@ def action_down():
 
 
 def drop_down():
-    started_moving = False
-    while pyboy.get_memory_value(0xc201) != start_y or not started_moving:
-        started_moving = True
+    # started_moving = False
+    # while pyboy.get_memory_value(0xc201) != start_y or not started_moving:
+    #     started_moving = True
+    #     action_down()
+
+    temp = np.asarray(tetris.game_area().copy())
+    action_down()
+    while not np.array_equal(temp, tetris.game_area()):
+        temp = np.asarray(tetris.game_area().copy())
+        action_down()
         action_down()
 
 
@@ -438,6 +445,8 @@ def fitness_function(sol, sol_idx):
                                        problem_type="regression")
         # print("predictions =  ", predictions[0])
         bestMove = calculateBestMove(predictions[0])
+
+        pyboy.tick()
         predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
         if bestMove[2] == float('-inf') or isinstance(predictedBoard, bool):
             break
@@ -446,8 +455,10 @@ def fitness_function(sol, sol_idx):
             break
         # print(board_check(predictedBoard, getCurrentBoard()), bestMove[0], bestMove[1]))
         # if not board_check(predictedBoard, getCurrentBoard()):
-            # print(bestMove[0], bestMove[1])
-            # print(predictedBoard)
+        #     print(bestMove[0], bestMove[1])
+        #     print(predictedBoard)
+        #     print()
+        #     print(getCurrentBoard())
 
         if board_check(predictedBoard, getCurrentBoard()):
             # score += bestMove[2]
@@ -455,6 +466,11 @@ def fitness_function(sol, sol_idx):
             pyboy.tick()
         else:
             print("game Over")
+            # print(bestMove[0], bestMove[1])
+            # print(predictedBoard)
+            # print()
+            # print(getCurrentBoard())
+
 
     print(sol_idx, score, getLinesCleared())
     return score
@@ -469,7 +485,7 @@ GANN_instance = pygad.gann.GANN(num_solutions=250,
 population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
 print(" . ", population_vectors)
 
-num_generations = 50
+num_generations = 10
 num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
 
 initial_population = population_vectors.copy()
