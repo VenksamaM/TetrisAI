@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from pyboy import PyBoy, WindowEvent
 import pygad.gann
@@ -39,7 +41,7 @@ def action_down():
     pyboy.tick()
 
 
-def drop_down():
+def drop_down(translate, turn):
     # started_moving = False
     # while pyboy.get_memory_value(0xc201) != start_y or not started_moving:
     #     started_moving = True
@@ -47,14 +49,28 @@ def drop_down():
 
     temp = np.asarray(tetris.game_area().copy())
     action_down()
-    while not np.array_equal(temp, tetris.game_area()):
+    # pyboy.send_input(action_map['Down'][0])
+    pyboy.tick()
+    pyboy.tick()
+    while not np.array_equal(temp[2, :], tetris.game_area()[2, :]):
+        print("moving")
         temp = np.asarray(tetris.game_area().copy())
-        action_down()
-        action_down()
+        pyboy.send_input(action_map['Down'][0])
+        pyboy.tick()
+        pyboy.send_input(action_map['Down'][1])
+        pyboy.tick()
+        for _ in range(20):
+            pyboy.tick()
+
+    # pyboy.send_input(action_map['Down'][1])
 
 
 # go n_dir spaces in direction, and rotate n_turn times
 def action(translate, turn):
+
+    # print(translate, turn)
+
+    coords = getStartCoords(getCurrentTetromino())
     # if translate is negative, move left. Else, right
     flag = 0
     if translate <= -5:
@@ -68,18 +84,140 @@ def action(translate, turn):
         else:
             action_translate("Right")
 
+    # for _ in range(abs(translate)):
+    #     if translate < 0:
+    #         move = True
+    #         for x in coords:
+    #             if x[1]-1 != 0 and [x[0], x[1]-1] not in coords:
+    #                 move = False
+    #         if move:
+    #             action_translate("Left")
+    #             pyboy.tick()
+    #             for x in coords:
+    #                 x[1] -= 1
+    #         translate -= 1
+    #     else:
+    #         move = True
+    #         for x in coords:
+    #             if x[1] + 1 != 0 and [x[0], x[1] + 1] not in coords:
+    #                 move = False
+    #         if move:
+    #             action_translate("Right")
+    #             pyboy.tick()
+    #             for x in coords:
+    #                 x[1] += 1
+    #         translate -= 1
+
+    tetromino = getCurrentTetromino()
     for _ in range(turn):
         action_turn()
+        # if tetromino != 'O':
+        #     if tetromino == 'I' or tetromino == "S" or tetromino == "Z":
+        #         turn = turn % 2
+        #     while turn != 0:
+        #         tempCoords = np.add(coords, rotation[''.join([tetromino, str(turn)])])
+        #
+        #         if all([x > 9 for x in tempCoords[:][1]]):
+        #             turn = turn - 1
+        #         else:
+        #             coords = tempCoords
+        #             turn = 0
 
     if flag == -1:
         action_translate("Left")
         action_translate("Left")
+        # for _ in range(2):
+        #     move = True
+        #     for x in coords:
+        #         if x[1] - 1 != 0 and [x[0], x[1] - 1] not in coords:
+        #             move = False
+        #     if move:
+        #         action_translate("Left")
+        #         for x in coords:
+        #             x[1] += 1
 
     elif flag == 1:
         action_translate("Right")
         action_translate("Right")
+        # for _ in range(2):
+        #     move = True
+        #     for x in coords:
+        #         if x[1] + 1 != 0 and [x[0], x[1] + 1] not in coords:
+        #             move = False
+        #     if move:
+        #         action_translate("Right")
+        #         for x in coords:
+        #             x[1] += 1
 
-    drop_down()
+    finished = False
+
+    # print(coords, getCurrentTetromino())
+    # print()
+    tet_y = pyboy.get_memory_value(0xFF93)
+    pyboy.set_memory_value(0xFF99, 0)
+    for _ in range(4):
+        pyboy.tick()
+    pyboy.set_memory_value(0xFF99, 42)
+
+    # print(tet_y, pyboy.get_memory_value(0xFF93), 9999999999999999)
+
+    while pyboy.get_memory_value(0xFF93) > tet_y:
+        # print(tet_y, pyboy.get_memory_value(0xFF93), 999)
+        tet_y = pyboy.get_memory_value(0xFF93)
+        pyboy.set_memory_value(0xFF99, 0)
+        for _ in range(3):
+            pyboy.tick()
+        pyboy.set_memory_value(0xFF99, 42)
+
+    #     print("line clear in mem: ", pyboy.get_memory_value(0xFF9C))
+    # print()
+
+    # while not finished:
+    #     # print(pyboy.get_memory_value(0xFF9A), pyboy.get_memory_value(0xFF99), pyboy.get_memory_value(0xFF98))
+    #     #
+    #
+    #
+    #
+    #     # while tet_y >= 17 and
+    #
+    #     # for x in coords:
+    #     #     next = np.array([x[0]+1, x[1]])
+    #     #     # print(coords)
+    #     # #     print(x[0] + 1, x[1], end=' ')
+    #     # #     if x[0] + 1 < 18:
+    #     # # #         print( getCurrentBoard()[x[0] + 1, x[1]], [x[0] + 1, x[1]] in coords, end='')
+    #     # # #         print(getCurrentBoard()[x[0] + 1, x[1]] != 0, [x[0] + 1, x[1]] not in coords)
+    #     # #         print(type(coords), type(x))
+    #     # #         print(next, " in ", coords, "? ", any(np.array_equal(next, c) for c in coords))
+    #     #     if x[0] + 1 > 17 :
+    #     #         finished = True
+    #     #         break
+    #     #     #  [x[0] + 1, x[1]] not in coords
+    #     #     # any(np.array_equal(x, c) for c in coords)
+    #     #     elif getCurrentBoard()[x[0] + 1, x[1]] != 0 and not any(np.array_equal(next, c) for c in coords):
+    #     #         finished = True
+    #     #         break
+    #     # # pyboy.set_memory_value(0xFF9A, 1)
+    #     # # print()
+    #     # if not finished:
+    #     #     # action_down()
+    #     #     pyboy.set_memory_value(0xFF99, 0)
+    #     #     for _ in range(3):
+    #     #         pyboy.tick()
+    #     #     pyboy.set_memory_value(0xFF99, 42)
+    #     #     print(pyboy.get_memory_value(0xFF92) / 16, pyboy.get_memory_value(0xFF93) / 8,
+    #     #           pyboy.get_memory_value(0xFF9B))
+    #     #     print()
+    #     #
+    #     #
+    #     #     for x in coords:
+    #     #         x[0] += 1
+    #
+    #     print("turn complete")
+    # print(coords)
+    # print()
+    # for _ in range(10):
+    #     pyboy.tick()
 
 
 def getScore():
@@ -204,7 +342,7 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
         board[coords[item][0], coords[item][1]] = 0
 
     for column in range(len(board[2])):
-        if board[2][column] != 0:
+        if board[4][column] != 0:
             # print("Prediction failure.")
             return False
 
@@ -246,7 +384,6 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
 
         if move_to_edge:
             for row in range(0, len(coords)):
-
                 coords[row][1] -= 1
                 # coords[i][0] +=  1
     while flag == 1:
@@ -383,9 +520,9 @@ def calculateBestMove(w):
             # prediction = calculateReward(predictedBoard, weights[0], weights[1], weights[2], weights[3],
             # weights[4])
             prediction = w[0] * getCompleteLines(tempBoard) + \
-                w[1] * getHoles(tempBoard) + \
-                w[2] * getAggregateHeight(tempBoard) + \
-                w[3] * getBumpiness(tempBoard)
+                         w[1] * getHoles(tempBoard) + \
+                         w[2] * getAggregateHeight(tempBoard) + \
+                         w[3] * getBumpiness(tempBoard)
 
             for i2 in range(-6, 6):
                 for j2 in range(5):
@@ -399,9 +536,9 @@ def calculateBestMove(w):
                     #                               weights[2], weights[3], weights[4])
 
                     prediction2 = w[0] * getCompleteLines(predictedBoard2) + \
-                        w[1] * getHoles(predictedBoard2) + \
-                        w[2] * getAggregateHeight(predictedBoard2) + \
-                        w[3] * getBumpiness(predictedBoard2)
+                                  w[1] * getHoles(predictedBoard2) + \
+                                  w[2] * getAggregateHeight(predictedBoard2) + \
+                                  w[3] * getBumpiness(predictedBoard2)
 
                     if prediction + prediction2 > temp:
                         # print("temp check")
@@ -446,12 +583,17 @@ def fitness_function(sol, sol_idx):
         # print("predictions =  ", predictions[0])
         bestMove = calculateBestMove(predictions[0])
 
-        pyboy.tick()
+        # pyboy.tick()
         predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
         if bestMove[2] == float('-inf') or isinstance(predictedBoard, bool):
+            print("test1")
+            # print(getCurrentBoard())
+            # print(predictedBoard)
+            # print(bestMove[0], bestMove[1])
             break
         action(bestMove[0], bestMove[1])
         if tetris.game_over():
+            print("test2222")
             break
         # print(board_check(predictedBoard, getCurrentBoard()), bestMove[0], bestMove[1]))
         # if not board_check(predictedBoard, getCurrentBoard()):
@@ -471,6 +613,8 @@ def fitness_function(sol, sol_idx):
             # print()
             # print(getCurrentBoard())
 
+        for i in range(50):
+            pyboy.tick()
 
     print(sol_idx, score, getLinesCleared())
     return score
@@ -485,11 +629,11 @@ GANN_instance = pygad.gann.GANN(num_solutions=250,
 population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
 print(" . ", population_vectors)
 
-num_generations = 10
+num_generations = 15
 num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
 
 initial_population = population_vectors.copy()
-print("\n ", len(population_vectors), len(initial_population), len(population_vectors[0]), len(initial_population[0]))
+# print("\n ", len(population_vectors), len(initial_population), len(population_vectors[0]), len(initial_population[0]))
 # sol_per_pop = 5
 # num_genes = 5
 
@@ -516,6 +660,7 @@ def on_gen(ga):
     print("\n\n\n\n\n\n")
 
     ga_instance.save(filename=filename)
+    ga_instance.plot_fitness()  # plot graph
 
 
 # def callback_generation(ga_instance):
@@ -548,6 +693,8 @@ ga_instance = pygad.GA(num_generations=num_generations,
 
 # load current model
 loaded_ga_instance = pygad.load(filename=filename)
+
+ga_instance = loaded_ga_instance
 
 ga_instance.run()  # run GA
 ga_instance.plot_fitness()  # plot graph
