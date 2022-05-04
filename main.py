@@ -572,6 +572,7 @@ def fitness_function(sol, sol_idx):
 
     score = 0
     while True:
+        tetris.level = 0
         board = getCurrentBoard()
 
         data_inputs = np.array([[getHoles(board), getBumpiness(board), getAggregateHeight(board),
