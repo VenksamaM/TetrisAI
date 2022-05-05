@@ -166,18 +166,18 @@ def action(translate, turn):
 
     # print(tet_y, pyboy.get_memory_value(0xFF93), 9999999999999999)
     # multiplier = tetris.level * 4
-
-    while pyboy.get_memory_value(0xFF98) == 0 and not tetris.game_over():
+    pyboy.set_memory_value(0xFF9B, 0)
+    while pyboy.get_memory_value(0xFF9B) == 0 and not tetris.game_over():
         pyboy.set_memory_value(0xFF99, 0)
+        # print(pyboy.get_memory_value(0xFF9B))
         pyboy.tick()
-    pyboy.set_memory_value(0xFF99, 0)
-    pyboy.tick()
 
         # print("dropping ", pyboy.get_memory_value(0xFF98), tetris.game_over(), pyboy.get_memory_value(0xFF9C))
         # print(pyboy.get_memory_value(0xFF98), tetris.lines)
         # if line_clears < tetris.lines:
         #     line_clears = tetris.lines
         #     break
+    # print(pyboy.get_memory_value(0xFF9B))
     pyboy.set_memory_value(0xFF99, 254)
     # print(pyboy.get_memory_value(0xFF99))
 
@@ -593,7 +593,6 @@ def fitness_function(sol, sol_idx):
 
     score = 0
     while True:
-        lines_cleared = tetris.lines
         # print(tetris.level)
         board = getCurrentBoard()
         data_inputs = np.array([[getHoles(board), getBumpiness(board), getAggregateHeight(board),
@@ -605,16 +604,18 @@ def fitness_function(sol, sol_idx):
         # print("predictions =  ", predictions[0])
         bestMove = calculateBestMove(predictions[0])
 
-        # pyboy.tick()
+        pyboy.tick()
+        pyboy.tick()
+        pyboy.tick()
         predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
         if tetris.game_over():
             print("test2222")
             break
         if bestMove[2] == float('-inf') or isinstance(predictedBoard, bool):
             print("test1")
-            print(getCurrentBoard())
-            print(predictedBoard)
-            print(bestMove[0], bestMove[1])
+            # print(getCurrentBoard())
+            # print(predictedBoard)
+            # print(bestMove[0], bestMove[1])
             break
         # pyboy.tick()
 
