@@ -167,11 +167,11 @@ def action(translate, turn):
     # print(tet_y, pyboy.get_memory_value(0xFF93), 9999999999999999)
     # multiplier = tetris.level * 4
 
-
     while pyboy.get_memory_value(0xFF98) == 0 and not tetris.game_over():
         pyboy.set_memory_value(0xFF99, 0)
         pyboy.tick()
-
+    pyboy.set_memory_value(0xFF99, 0)
+    pyboy.tick()
 
         # print("dropping ", pyboy.get_memory_value(0xFF98), tetris.game_over(), pyboy.get_memory_value(0xFF9C))
         # print(pyboy.get_memory_value(0xFF98), tetris.lines)
@@ -641,9 +641,11 @@ def fitness_function(sol, sol_idx):
             # print(getCurrentTetromino())
             # print(getCurrentBoard())
 
-        while pyboy.get_memory_value(0xFF98) != 0:
-            print(pyboy.get_memory_value(0xFF98))
-            pyboy.tick()
+        # while pyboy.get_memory_value(0xFF98) != 0:
+        #     print(pyboy.get_memory_value(0xFF98))
+        #     pyboy.set_memory_value(0xFF99, 0)
+        #     pyboy.tick()
+        # pyboy.set_memory_value(0xFF99, 254)
         # for _ in range(50):
         #     pyboy.tick()
         #
