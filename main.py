@@ -9,6 +9,10 @@ pyboy = PyBoy('Tetris.gb', game_wrapper=True)
 tetris = pyboy.game_wrapper()
 tetris.start_game()
 
+# while tetris.level != 9:
+#     pyboy.tick()
+
+
 # Actions for the AI to use
 action_map = {
     'Left': [WindowEvent.PRESS_ARROW_LEFT, WindowEvent.RELEASE_ARROW_LEFT],
@@ -18,6 +22,7 @@ action_map = {
 }
 
 start_y = 24
+line_clears = 0
 
 
 def action_turn():
@@ -153,24 +158,40 @@ def action(translate, turn):
 
     # print(coords, getCurrentTetromino())
     # print()
-    tet_y = pyboy.get_memory_value(0xFF93)
-    pyboy.set_memory_value(0xFF99, 0)
-    for _ in range(4):
-        pyboy.tick()
-    pyboy.set_memory_value(0xFF99, 42)
+    # tet_y = pyboy.get_memory_value(0xFF93)
+    # pyboy.set_memory_value(0xFF99, 0)
+    # for _ in range(4):
+    #     pyboy.tick()
+    # pyboy.set_memory_value(0xFF99, 42)
 
     # print(tet_y, pyboy.get_memory_value(0xFF93), 9999999999999999)
+    # multiplier = tetris.level * 4
 
-    while pyboy.get_memory_value(0xFF93) > tet_y:
-        # print(tet_y, pyboy.get_memory_value(0xFF93), 999)
-        tet_y = pyboy.get_memory_value(0xFF93)
+
+    while pyboy.get_memory_value(0xFF98) == 0 and not tetris.game_over():
         pyboy.set_memory_value(0xFF99, 0)
-        for _ in range(3):
-            pyboy.tick()
-        pyboy.set_memory_value(0xFF99, 42)
+        pyboy.tick()
 
-    #     print("line clear in mem: ", pyboy.get_memory_value(0xFF9C))
-    # print()
+
+        # print("dropping ", pyboy.get_memory_value(0xFF98), tetris.game_over(), pyboy.get_memory_value(0xFF9C))
+        # print(pyboy.get_memory_value(0xFF98), tetris.lines)
+        # if line_clears < tetris.lines:
+        #     line_clears = tetris.lines
+        #     break
+    pyboy.set_memory_value(0xFF99, 254)
+    # print(pyboy.get_memory_value(0xFF99))
+
+    # while pyboy.get_memory_value(0xFF93) > tet_y + multiplier:
+    #     print(pyboy.get_memory_value(0xFF93), tet_y + multiplier, pyboy.get_memory_value(0xFF98))
+    #     # print(tet_y, pyboy.get_memory_value(0xFF93), 999)
+    #     tet_y = pyboy.get_memory_value(0xFF93)
+    #     # pyboy.set_memory_value(0xFF99, 0)
+    #     for _ in range(3):
+    #         pyboy.set_memory_value(0xFF99, 0)
+    #         pyboy.tick()
+    #         pyboy.set_memory_value(0xFF99, 42)
+    #     # pyboy.set_memory_value(0xFF99, 42)
+    #     print(pyboy.get_memory_value(0xFF93), tet_y + multiplier)
 
     # while not finished:
     #     # print(pyboy.get_memory_value(0xFF9A), pyboy.get_memory_value(0xFF99), pyboy.get_memory_value(0xFF98))
@@ -342,7 +363,7 @@ def get_predicted_board(translate, turn, tetromino=getCurrentTetromino(), starti
         board[coords[item][0], coords[item][1]] = 0
 
     for column in range(len(board[2])):
-        if board[4][column] != 0:
+        if board[2][column] != 0:
             # print("Prediction failure.")
             return False
 
@@ -572,9 +593,9 @@ def fitness_function(sol, sol_idx):
 
     score = 0
     while True:
-        tetris.level = 0
+        lines_cleared = tetris.lines
+        # print(tetris.level)
         board = getCurrentBoard()
-
         data_inputs = np.array([[getHoles(board), getBumpiness(board), getAggregateHeight(board),
                                  pyboy.get_memory_value(0xc203), pyboy.get_memory_value(0xC213)]])
         # print(solution_idx, data_inputs)
@@ -586,16 +607,22 @@ def fitness_function(sol, sol_idx):
 
         # pyboy.tick()
         predictedBoard = get_predicted_board(bestMove[0], bestMove[1], getCurrentTetromino(), board)
-        if bestMove[2] == float('-inf') or isinstance(predictedBoard, bool):
-            print("test1")
-            # print(getCurrentBoard())
-            # print(predictedBoard)
-            # print(bestMove[0], bestMove[1])
-            break
-        action(bestMove[0], bestMove[1])
         if tetris.game_over():
             print("test2222")
             break
+        if bestMove[2] == float('-inf') or isinstance(predictedBoard, bool):
+            print("test1")
+            print(getCurrentBoard())
+            print(predictedBoard)
+            print(bestMove[0], bestMove[1])
+            break
+        # pyboy.tick()
+
+        # print(getCurrentBoard())
+        # print(predictedBoard)
+        # print(tetris.game_over())
+
+        action(bestMove[0], bestMove[1])
         # print(board_check(predictedBoard, getCurrentBoard()), bestMove[0], bestMove[1]))
         # if not board_check(predictedBoard, getCurrentBoard()):
         #     print(bestMove[0], bestMove[1])
@@ -606,16 +633,26 @@ def fitness_function(sol, sol_idx):
         if board_check(predictedBoard, getCurrentBoard()):
             # score += bestMove[2]
             score += calculateReward(predictedBoard)
-            pyboy.tick()
+            # pyboy.tick()
         else:
             print("game Over")
             # print(bestMove[0], bestMove[1])
             # print(predictedBoard)
-            # print()
+            # print(getCurrentTetromino())
             # print(getCurrentBoard())
 
-        for i in range(50):
+        while pyboy.get_memory_value(0xFF98) != 0:
+            print(pyboy.get_memory_value(0xFF98))
             pyboy.tick()
+        # for _ in range(50):
+        #     pyboy.tick()
+        #
+        # if lines_cleared < tetris.lines:
+        #     pyboy.set_memory_value(0xFF99, 254)
+        #     for _ in range(100):
+        #         pyboy.tick()
+
+
 
     print(sol_idx, score, getLinesCleared())
     return score
@@ -630,7 +667,7 @@ GANN_instance = pygad.gann.GANN(num_solutions=250,
 population_vectors = pygad.gann.population_as_vectors(population_networks=GANN_instance.population_networks)
 print(" . ", population_vectors)
 
-num_generations = 15
+num_generations = 10
 num_parents_mating = 2  # percentage of total population (sol_per_pop * 0.1)
 
 initial_population = population_vectors.copy()
